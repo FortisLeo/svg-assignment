@@ -8,6 +8,11 @@ import android.util.Base64;
 import android.util.Log;
 import android.util.LruCache;
 
+import androidx.room.Room;
+
+import com.example.assignmentsvg.data.database.AppDatabase;
+import com.example.assignmentsvg.data.entity.DogImageEntity;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.util.ArrayList;
@@ -16,8 +21,8 @@ import java.util.List;
 
 public class ImageCache {
     private static LruCache<String, Bitmap> memoryCache;
-    private static final String PREF_NAME = "ImageCachePreferences";
-    private static final String CACHE_KEY = "ImageCache";
+    private static AppDatabase database;
+
     public static void initCache(Context context, int maxImages) {
         if (memoryCache == null) {
             memoryCache = new LruCache<String, Bitmap>(maxImages) {
@@ -26,53 +31,47 @@ public class ImageCache {
                     return 1;
                 }
             };
+            database = Room.databaseBuilder(context, AppDatabase.class, "dog_image_db").build();
             restoreCache(context);
-
         }
-
-
-
     }
 
     public static void addToCache(Context context, String key, Bitmap bitmap) {
         if (getFromCache(key) == null) {
             memoryCache.put(key, bitmap);
-            saveCacheToPreferences(context);
-
+            saveCacheToDatabase(context);
         }
     }
 
-    private static void saveCacheToPreferences(Context context) {
-        SharedPreferences sharedPreferences = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
-        SharedPreferences.Editor editor = sharedPreferences.edit();
-
-        List<String> encodedImages = new ArrayList<>();
-        for (String key : memoryCache.snapshot().keySet()) {
-            Bitmap bitmap = memoryCache.get(key);
-            if (bitmap != null) {
-                encodedImages.add(key + ":" + encodeBitmapToBase64(bitmap));
+    private static void saveCacheToDatabase(Context context) {
+        new Thread(() -> {
+            List<DogImageEntity> imageCacheEntities = new ArrayList<>();
+            for (String key : memoryCache.snapshot().keySet()) {
+                Bitmap bitmap = memoryCache.get(key);
+                if (bitmap != null) {
+                    String encodedBitmap = encodeBitmapToBase64(bitmap);
+                    DogImageEntity entity = new DogImageEntity();
+                    entity.key = key;
+                    entity.encodedBitmap = encodedBitmap;
+                    imageCacheEntities.add(entity);
+                }
             }
-        }
-
-        editor.putStringSet(CACHE_KEY, new HashSet<>(encodedImages));
-        editor.apply();
+            database.dogImageDao().insertImageCache(imageCacheEntities.toArray(new DogImageEntity[0]));
+        }).start();
     }
 
     private static void restoreCache(Context context) {
-        SharedPreferences sharedPreferences = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
-        List<String> encodedImages = new ArrayList<>(sharedPreferences.getStringSet(CACHE_KEY, new HashSet<>()));
-
-        for (String entry : encodedImages) {
-            String[] splitEntry = entry.split(":", 3);
-            if (splitEntry.length == 3) {
-                String key = splitEntry[0] + ":" + splitEntry[1];
-                Bitmap bitmap = decodeBase64ToBitmap(splitEntry[2]);
+        new Thread(() -> {
+            List<DogImageEntity> entities = database.dogImageDao().getAllDogCaches();
+            for (DogImageEntity entity : entities) {
+                Bitmap bitmap = decodeBase64ToBitmap(entity.encodedBitmap);
                 if (bitmap != null) {
-                    memoryCache.put(key, bitmap);
+                    memoryCache.put(entity.key, bitmap);
                 }
             }
-        }
+        }).start();
     }
+
     private static String encodeBitmapToBase64(Bitmap bitmap) {
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         bitmap.compress(Bitmap.CompressFormat.PNG, 100, outputStream);
@@ -93,25 +92,21 @@ public class ImageCache {
     public static Bitmap getFromCache(String key) {
         return memoryCache.get(key);
     }
+
     public static void clearCache(Context context) {
         if (memoryCache != null) {
             memoryCache.evictAll();
-            SharedPreferences sharedPreferences = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
-            sharedPreferences.edit().remove(CACHE_KEY).apply();
+            new Thread(() -> database.dogImageDao().clearCache()).start();
         }
     }
+
     public static List<Bitmap> getAll() {
+        List<Bitmap> cachedImages = new ArrayList<>();
         if (memoryCache != null) {
-            List<Bitmap> cachedImages = new ArrayList<>();
             for (String key : memoryCache.snapshot().keySet()) {
                 cachedImages.add(memoryCache.get(key));
             }
-            return cachedImages;
         }
-        return new ArrayList<>();
+        return cachedImages;
     }
-
-
-
 }
-

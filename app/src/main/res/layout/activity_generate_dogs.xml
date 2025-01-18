@@ -24,6 +24,8 @@
         android:background="@drawable/bg_btn"
         android:paddingHorizontal="28dp"
         android:text="Generate!"
+        android:textAllCaps="false"
+        android:textColor="@color/white"
         android:id="@+id/btnGenerate"
         android:layout_marginTop="40dp"
         app:layout_constraintEnd_toEndOf="parent"

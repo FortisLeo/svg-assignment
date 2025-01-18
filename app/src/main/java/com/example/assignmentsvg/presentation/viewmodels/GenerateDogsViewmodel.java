@@ -8,12 +8,11 @@ import android.util.Log;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
-import androidx.lifecycle.ViewModelProvider;
 
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.request.target.CustomTarget;
 import com.bumptech.glide.request.transition.Transition;
-import com.example.assignmentsvg.data.DogImage;
+import com.example.assignmentsvg.data.model.DogImage;
 import com.example.assignmentsvg.domain.api.DogAPI;
 import com.example.assignmentsvg.domain.helpers.ImageCache;
 
@@ -41,6 +40,7 @@ public class GenerateDogsViewmodel extends ViewModel {
                 if (response.isSuccessful() && response.body() != null) {
                     String imageUrl = response.body().getMessage();
                     String cacheKey = imageUrl;
+                    Log.d("TAG", imageUrl);
 
                     Bitmap cachedBitmap = ImageCache.getFromCache(cacheKey);
                     if (cachedBitmap != null) {
@@ -52,9 +52,9 @@ public class GenerateDogsViewmodel extends ViewModel {
                                 .into(new CustomTarget<Bitmap>() {
                                     @Override
                                     public void onResourceReady(Bitmap resource, Transition<? super Bitmap> transition) {
+                                        dogImage.setValue(resource);
 
                                         ImageCache.addToCache(context, cacheKey, resource);
-                                        dogImage.setValue(resource);
 
                                     }
 

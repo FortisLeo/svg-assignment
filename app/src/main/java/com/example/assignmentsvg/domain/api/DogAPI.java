@@ -1,6 +1,6 @@
 package com.example.assignmentsvg.domain.api;
 
-import com.example.assignmentsvg.data.DogImage;
+import com.example.assignmentsvg.data.model.DogImage;
 
 import retrofit2.Call;
 import retrofit2.Retrofit;

@@ -1,4 +1,4 @@
-package com.example.assignmentsvg.data;
+package com.example.assignmentsvg.data.model;
 
 public class DogImage {
     private String message;
