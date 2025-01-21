@@ -11,14 +11,11 @@ import java.util.List;
 @Dao
 public interface DogImageDao {
     @Insert
-    void insertImageCache(DogImageEntity dogImageEntity);
-
-    @Query("SELECT * FROM dog_image WHERE key = :key LIMIT 1")
-    DogImageEntity getDogImageCacheByKey(String key);
+    void insert(DogImageEntity dogImageEntity);
 
     @Query("SELECT * FROM dog_image")
     List<DogImageEntity> getAllDogCaches();
 
     @Query("DELETE FROM dog_image")
-    void clearCache();
+    void deleteAll();
 }

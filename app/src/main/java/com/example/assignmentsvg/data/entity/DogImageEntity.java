@@ -9,6 +9,6 @@ public class DogImageEntity {
     @PrimaryKey(autoGenerate = true)
     public int id;
 
-    public String key;
-    public String encodedBitmap;
+    public String key;       // Unique identifier for the image
+    public String filePath;
 }
